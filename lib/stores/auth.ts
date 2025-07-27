@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
+import { isDummyConfig } from '../config';
 
 // Lazy imports for SSR compatibility
 let SyncService: any, BackgroundSync: any, ArticleStorage: any;
@@ -26,7 +27,11 @@ interface AuthState {
 
 interface AuthActions {
   signIn: (email: string, password: string) => Promise<{ error?: any }>;
-  signUp: (email: string, password: string) => Promise<{ error?: any }>;
+  signUp: (email: string, password: string) => Promise<{ 
+    error?: any; 
+    user?: any; 
+    needsEmailConfirmation?: boolean 
+  }>;
   signOut: () => Promise<void>;
   initialize: () => Promise<void>;
 }
@@ -38,6 +43,15 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   initialized: false,
 
   signIn: async (email: string, password: string) => {
+    // Check if Supabase is properly configured
+    if (isDummyConfig()) {
+      return { 
+        error: { 
+          message: 'Supabase is not configured. Please set up your Supabase project credentials in the .env file.' 
+        } 
+      };
+    }
+
     set({ loading: true });
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -48,13 +62,45 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   },
 
   signUp: async (email: string, password: string) => {
+    // Check if Supabase is properly configured
+    if (isDummyConfig()) {
+      return { 
+        error: { 
+          message: 'Supabase is not configured. Please set up your Supabase project credentials in the .env file.' 
+        } 
+      };
+    }
+
     set({ loading: true });
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    set({ loading: false });
-    return { error };
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+        },
+      });
+      
+      set({ loading: false });
+      
+      if (error) {
+        return { error };
+      }
+      
+      // Return success with user data
+      return { 
+        error: null, 
+        user: data.user,
+        needsEmailConfirmation: !data.user?.email_confirmed_at 
+      };
+    } catch (error) {
+      set({ loading: false });
+      return { 
+        error: { 
+          message: 'Network error. Please check your connection and try again.' 
+        } 
+      };
+    }
   },
 
   signOut: async () => {

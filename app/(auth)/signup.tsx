@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, TextInput, Alert, ScrollView, Pressable } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { StyleSheet, TextInput, Alert, ScrollView, Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -7,46 +7,102 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuthStore } from '@/lib/stores/auth';
+import { 
+  validateEmail, 
+  validatePassword, 
+  validatePasswordConfirmation,
+  getPasswordStrength,
+  formatAuthError 
+} from '@/lib/utils/validation';
 
 export default function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const [showPasswordStrength, setShowPasswordStrength] = useState(false);
+  
   const colorScheme = useColorScheme();
   const { signUp } = useAuthStore();
+  
+  const passwordStrength = getPasswordStrength(password);
+
+  // Validation handlers
+  const handleEmailChange = useCallback((text: string) => {
+    setEmail(text);
+    setEmailError('');
+  }, []);
+
+  const handlePasswordChange = useCallback((text: string) => {
+    setPassword(text);
+    setPasswordError('');
+    setShowPasswordStrength(text.length > 0);
+  }, []);
+
+  const handleConfirmPasswordChange = useCallback((text: string) => {
+    setConfirmPassword(text);
+    setConfirmPasswordError('');
+  }, []);
+
+  const validateForm = (): boolean => {
+    let hasErrors = false;
+
+    // Validate email
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      setEmailError(emailValidation.error || '');
+      hasErrors = true;
+    }
+
+    // Validate password
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      setPasswordError(passwordValidation.error || '');
+      hasErrors = true;
+    }
+
+    // Validate password confirmation
+    const confirmValidation = validatePasswordConfirmation(password, confirmPassword);
+    if (!confirmValidation.isValid) {
+      setConfirmPasswordError(confirmValidation.error || '');
+      hasErrors = true;
+    }
+
+    return !hasErrors;
+  };
 
   const handleSignUp = async () => {
-    if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+    if (!validateForm()) {
       return;
     }
 
     setIsLoading(true);
     try {
-      const { error } = await signUp(email, password);
-      if (error) {
-        Alert.alert('Error', error.message);
+      const result = await signUp(email.trim(), password);
+      
+      if (result.error) {
+        const errorMessage = formatAuthError(result.error);
+        Alert.alert('Sign Up Error', errorMessage);
       } else {
+        const message = result.needsEmailConfirmation 
+          ? 'Account created successfully! Please check your email to verify your account before signing in.'
+          : 'Account created successfully! You can now sign in.';
+          
         Alert.alert(
-          'Success',
-          'Account created successfully! Please check your email to verify your account.',
-          [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+          'Welcome to Dolate!',
+          message,
+          [{ 
+            text: 'Continue', 
+            onPress: () => router.replace('/(auth)/login') 
+          }]
         );
       }
     } catch (error) {
       console.error('Signup error:', error);
-      Alert.alert('Error', 'An unexpected error occurred');
+      Alert.alert('Error', 'Network error. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -81,19 +137,22 @@ export default function SignUpScreen() {
             style={[
               styles.input,
               { 
-                borderColor: Colors[colorScheme ?? 'light'].tabIconDefault,
+                borderColor: emailError ? '#ef4444' : Colors[colorScheme ?? 'light'].tabIconDefault,
                 backgroundColor: Colors[colorScheme ?? 'light'].background,
                 color: Colors[colorScheme ?? 'light'].text,
               }
             ]}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={handleEmailChange}
             placeholder="Enter your email"
             placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
             autoCapitalize="none"
             keyboardType="email-address"
             autoCorrect={false}
           />
+          {emailError ? (
+            <ThemedText style={styles.errorText}>{emailError}</ThemedText>
+          ) : null}
         </ThemedView>
 
         <ThemedView style={styles.inputContainer}>
@@ -104,18 +163,39 @@ export default function SignUpScreen() {
             style={[
               styles.input,
               { 
-                borderColor: Colors[colorScheme ?? 'light'].tabIconDefault,
+                borderColor: passwordError ? '#ef4444' : Colors[colorScheme ?? 'light'].tabIconDefault,
                 backgroundColor: Colors[colorScheme ?? 'light'].background,
                 color: Colors[colorScheme ?? 'light'].text,
               }
             ]}
             value={password}
-            onChangeText={setPassword}
-            placeholder="Create a password (min 6 characters)"
+            onChangeText={handlePasswordChange}
+            placeholder="Create a password (min 8 characters)"
             placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
             secureTextEntry
             autoCorrect={false}
           />
+          {passwordError ? (
+            <ThemedText style={styles.errorText}>{passwordError}</ThemedText>
+          ) : null}
+          {showPasswordStrength && !passwordError && (
+            <View style={styles.passwordStrengthContainer}>
+              <View style={styles.passwordStrengthBar}>
+                <View 
+                  style={[
+                    styles.passwordStrengthFill,
+                    { 
+                      width: `${(passwordStrength.score / 6) * 100}%`,
+                      backgroundColor: passwordStrength.color 
+                    }
+                  ]} 
+                />
+              </View>
+              <ThemedText style={[styles.passwordStrengthText, { color: passwordStrength.color }]}>
+                {passwordStrength.label}
+              </ThemedText>
+            </View>
+          )}
         </ThemedView>
 
         <ThemedView style={styles.inputContainer}>
@@ -126,18 +206,21 @@ export default function SignUpScreen() {
             style={[
               styles.input,
               { 
-                borderColor: Colors[colorScheme ?? 'light'].tabIconDefault,
+                borderColor: confirmPasswordError ? '#ef4444' : Colors[colorScheme ?? 'light'].tabIconDefault,
                 backgroundColor: Colors[colorScheme ?? 'light'].background,
                 color: Colors[colorScheme ?? 'light'].text,
               }
             ]}
             value={confirmPassword}
-            onChangeText={setConfirmPassword}
+            onChangeText={handleConfirmPasswordChange}
             placeholder="Confirm your password"
             placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
             secureTextEntry
             autoCorrect={false}
           />
+          {confirmPasswordError ? (
+            <ThemedText style={styles.errorText}>{confirmPasswordError}</ThemedText>
+          ) : null}
         </ThemedView>
 
         <Pressable 
@@ -234,5 +317,28 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontWeight: '600',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 14,
+    marginTop: 6,
+  },
+  passwordStrengthContainer: {
+    marginTop: 8,
+  },
+  passwordStrengthBar: {
+    height: 4,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  passwordStrengthFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  passwordStrengthText: {
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '500',
   },
 });

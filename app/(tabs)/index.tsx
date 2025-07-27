@@ -110,7 +110,7 @@ export default function ArticlesScreen() {
         <IconSymbol 
           size={80} 
           name={hasFilters ? "magnifyingglass" : "doc.text"} 
-          color={Colors[colorScheme ?? 'light'].tabIconDefault}
+          color={Colors[colorScheme ?? 'light'].icon}
         />
         <ThemedText type="title" style={styles.emptyTitle}>
           {hasFilters ? 'No Matching Articles' : 'No Articles Yet'}
@@ -146,13 +146,13 @@ export default function ArticlesScreen() {
           style={[
             styles.searchInput,
             { 
-              backgroundColor: Colors[colorScheme ?? 'light'].background,
-              borderColor: Colors[colorScheme ?? 'light'].tabIconDefault,
+              backgroundColor: Colors[colorScheme ?? 'light'].input,
+              borderColor: Colors[colorScheme ?? 'light'].inputBorder,
               color: Colors[colorScheme ?? 'light'].text,
             }
           ]}
           placeholder="Search articles..."
-          placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
+          placeholderTextColor={Colors[colorScheme ?? 'light'].textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   offlineBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ff6b35',
+    backgroundColor: Colors.light.warning,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,

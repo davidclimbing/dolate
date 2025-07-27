@@ -41,19 +41,19 @@ export function ArticleCard({
     <Pressable onPress={onPress}>
       <ThemedView style={[
         styles.container,
-        { borderBottomColor: Colors[colorScheme ?? 'light'].tabIconDefault }
+        { borderBottomColor: Colors[colorScheme ?? 'light'].border }
       ]}>
         {article.image_url && (
           <ThemedView style={styles.imageContainer}>
             {/* TODO: Add proper image component */}
             <ThemedView style={[
               styles.imagePlaceholder,
-              { backgroundColor: Colors[colorScheme ?? 'light'].tabIconDefault }
+              { backgroundColor: Colors[colorScheme ?? 'light'].backgroundSecondary }
             ]}>
               <IconSymbol 
                 size={32} 
                 name="photo" 
-                color={Colors[colorScheme ?? 'light'].background}
+                color={Colors[colorScheme ?? 'light'].iconSecondary}
               />
             </ThemedView>
           </ThemedView>
@@ -69,7 +69,7 @@ export function ArticleCard({
               <IconSymbol 
                 size={20} 
                 name={article.is_favorite ? "heart.fill" : "heart"} 
-                color={article.is_favorite ? "#ff4444" : Colors[colorScheme ?? 'light'].tabIconDefault}
+                color={article.is_favorite ? Colors[colorScheme ?? 'light'].error : Colors[colorScheme ?? 'light'].icon}
               />
             </Pressable>
           </ThemedView>
@@ -113,7 +113,7 @@ export function ArticleCard({
                 <IconSymbol 
                   size={16} 
                   name="tag.fill" 
-                  color={Colors[colorScheme ?? 'light'].tabIconDefault}
+                  color={Colors[colorScheme ?? 'light'].icon}
                 />
               )}
             </ThemedView>

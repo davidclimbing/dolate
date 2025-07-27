@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createClient } from '@supabase/supabase-js';
 import 'react-native-url-polyfill/auto';
 import { Config, validateConfig } from './config';
 
@@ -54,9 +54,20 @@ const createPlatformStorage = () => {
 };
 
 // Validate configuration on import
-validateConfig();
+try {
+  validateConfig();
+} catch (error) {
+  console.error('❌ Supabase configuration error:', error);
+  // In development, show helpful error message
+  if (__DEV__) {
+    console.error('\n🔧 To fix this:\n1. Create a Supabase project at https://supabase.com\n2. Update your .env file with real credentials');
+  }
+}
 
-export const supabase = createClient(Config.supabase.url, Config.supabase.anonKey, {
+export const supabase = createClient(
+  process.env.EXPO_PUBLIC_SUPABASE_URL || Config.supabase.url || 'https://placeholder.supabase.co', 
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || Config.supabase.anonKey || 'placeholder-key', 
+  {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
