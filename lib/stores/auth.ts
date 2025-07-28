@@ -1,7 +1,7 @@
+import { Session, User } from '@supabase/supabase-js';
 import { create } from 'zustand';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../supabase';
 import { isDummyConfig } from '../config';
+import { supabase } from '../supabase';
 
 // Lazy imports for SSR compatibility
 let SyncService: any, BackgroundSync: any, ArticleStorage: any;
@@ -111,6 +111,17 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
 
   initialize: async () => {
     try {
+      // Check if Supabase is configured before attempting auth
+      if (isDummyConfig()) {
+        console.log('🎭 Supabase not configured - marking as initialized without session');
+        set({ 
+          session: null, 
+          user: null, 
+          initialized: true 
+        });
+        return;
+      }
+
       // Check if we're in browser environment before calling getSession
       if (typeof window === 'undefined') {
         // SSR environment - just mark as initialized without session
@@ -137,8 +148,8 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       });
     }
 
-    // Listen for auth changes (only in browser environment)
-    if (typeof window !== 'undefined') {
+    // Listen for auth changes (only in browser environment and when Supabase is configured)
+    if (typeof window !== 'undefined' && !isDummyConfig()) {
       supabase.auth.onAuthStateChange(async (event, session) => {
         const newUser = session?.user ?? null;
         set({ 

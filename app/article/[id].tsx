@@ -16,6 +16,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useArticleStore, type Article } from '@/lib/stores/articles';
+import { useDemoStore } from '@/lib/stores/demo';
 import { ArticleAPI } from '@/lib/api/articles';
 import { MetadataAPI } from '@/lib/api/metadata';
 
@@ -31,6 +32,13 @@ export default function ArticleDetailScreen() {
   const navigation = useNavigation();
   
   const { articles, markAsRead, toggleFavorite, updateArticle } = useArticleStore();
+  const { 
+    isDemo, 
+    getDemoArticleById, 
+    markDemoAsRead, 
+    toggleDemoFavorite, 
+    updateDemoArticle 
+  } = useDemoStore();
 
   useEffect(() => {
     if (id) {
@@ -70,23 +78,30 @@ export default function ArticleDetailScreen() {
       
       // Mark as read when opening
       if (!article.is_read) {
-        markAsRead(article.id);
-        updateArticleInDatabase({ is_read: true });
+        if (isDemo) {
+          markDemoAsRead(article.id);
+        } else {
+          markAsRead(article.id);
+          updateArticleInDatabase({ is_read: true });
+        }
       }
     }
   }, [article, colorScheme]);
 
   const loadArticle = async (articleId: string) => {
     try {
-      const foundArticle = articles.find(a => a.id === articleId);
+      const foundArticle = isDemo 
+        ? getDemoArticleById(articleId)
+        : articles.find(a => a.id === articleId);
+        
       if (foundArticle) {
         setArticle(foundArticle);
         
-        // Load full content if not available
-        if (!foundArticle.content) {
+        // Load full content if not available (only for non-demo mode)
+        if (!foundArticle.content && !isDemo) {
           loadFullContent(foundArticle.url);
         } else {
-          setFullContent(foundArticle.content);
+          setFullContent(foundArticle.content || '');
         }
       } else {
         Alert.alert('Error', 'Article not found');
@@ -127,8 +142,12 @@ export default function ArticleDetailScreen() {
     if (!article) return;
     
     try {
-      await ArticleAPI.updateArticle(article.id, updates);
-      updateArticle(article.id, updates);
+      if (isDemo) {
+        updateDemoArticle(article.id, updates);
+      } else {
+        await ArticleAPI.updateArticle(article.id, updates);
+        updateArticle(article.id, updates);
+      }
     } catch (error) {
       console.error('Error updating article:', error);
     }
@@ -137,8 +156,12 @@ export default function ArticleDetailScreen() {
   const handleToggleFavorite = () => {
     if (!article) return;
     
-    toggleFavorite(article.id);
-    updateArticleInDatabase({ is_favorite: !article.is_favorite });
+    if (isDemo) {
+      toggleDemoFavorite(article.id);
+    } else {
+      toggleFavorite(article.id);
+      updateArticleInDatabase({ is_favorite: !article.is_favorite });
+    }
   };
 
   const handleShare = async () => {
@@ -307,7 +330,7 @@ export default function ArticleDetailScreen() {
             </ThemedText>
           </Pressable>
           
-          {!fullContent && !contentLoading && (
+          {!fullContent && !contentLoading && !isDemo && (
             <Pressable 
               style={[
                 styles.actionButton,

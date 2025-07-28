@@ -2,8 +2,6 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/lib/stores/auth';
-import { isDummyConfig } from '@/lib/config';
-import SupabaseSetupGuide from '@/components/SupabaseSetupGuide';
 
 export default function AuthLayout() {
   const { user } = useAuthStore();
@@ -13,11 +11,6 @@ export default function AuthLayout() {
       router.replace('/(tabs)');
     }
   }, [user]);
-
-  // Show setup guide if Supabase is not configured
-  if (isDummyConfig()) {
-    return <SupabaseSetupGuide />;
-  }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -35,14 +28,6 @@ export default function AuthLayout() {
           title: 'Sign Up',
           headerShown: false,
           gestureEnabled: true,
-        }} 
-      />
-      <Stack.Screen 
-        name="setup" 
-        options={{ 
-          title: 'Setup',
-          headerShown: false,
-          gestureEnabled: false,
         }} 
       />
     </Stack>

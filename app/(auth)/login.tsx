@@ -7,6 +7,8 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuthStore } from '@/lib/stores/auth';
+import { useDemoStore } from '@/lib/stores/demo';
+import { isDummyConfig } from '@/lib/config';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -14,6 +16,7 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const colorScheme = useColorScheme();
   const { signIn } = useAuthStore();
+  const { enterDemoMode } = useDemoStore();
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) {
@@ -39,6 +42,22 @@ export default function LoginScreen() {
 
   const navigateToSignUp = () => {
     router.push('/(auth)/signup');
+  };
+
+  const handleDemoMode = () => {
+    console.log('🎭 Demo mode button clicked!');
+    console.log('🎭 Current demo state before:', useDemoStore.getState().isDemo);
+    
+    enterDemoMode();
+    
+    console.log('🎭 Demo state after enterDemoMode:', useDemoStore.getState().isDemo);
+    console.log('🎭 Attempting to navigate to /(tabs)');
+    
+    // Force navigation with a small delay to ensure state is updated
+    setTimeout(() => {
+      console.log('🎭 Executing router.replace');
+      router.replace('/(tabs)');
+    }, 100);
   };
 
   return (
@@ -116,6 +135,37 @@ export default function LoginScreen() {
             {isLoading ? 'Signing In...' : 'Sign In'}
           </ThemedText>
         </Pressable>
+
+        {isDummyConfig() && (
+          <ThemedView style={styles.demoContainer}>
+            <ThemedView style={styles.divider} />
+            <ThemedText style={styles.demoLabel}>
+              No Supabase setup required
+            </ThemedText>
+            <Pressable 
+              style={[
+                styles.demoButton,
+                { borderColor: Colors[colorScheme ?? 'light'].tint }
+              ]}
+              onPress={handleDemoMode}
+            >
+              <IconSymbol 
+                size={20} 
+                name="theatermasks.fill" 
+                color={Colors[colorScheme ?? 'light'].tint}
+              />
+              <ThemedText style={[
+                styles.demoButtonText,
+                { color: Colors[colorScheme ?? 'light'].tint }
+              ]}>
+                Try Demo Mode
+              </ThemedText>
+            </Pressable>
+            <ThemedText style={styles.demoDescription}>
+              Experience all features with sample data
+            </ThemedText>
+          </ThemedView>
+        )}
 
         <ThemedView style={styles.footer}>
           <ThemedText style={styles.footerText}>
@@ -197,5 +247,41 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontWeight: '600',
+  },
+  demoContainer: {
+    marginTop: 30,
+    alignItems: 'center',
+  },
+  divider: {
+    height: 1,
+    width: '100%',
+    backgroundColor: Colors.light.border,
+    opacity: 0.3,
+    marginBottom: 20,
+  },
+  demoLabel: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  demoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderWidth: 2,
+    borderRadius: 8,
+    gap: 8,
+    marginBottom: 12,
+  },
+  demoButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  demoDescription: {
+    fontSize: 12,
+    opacity: 0.6,
+    textAlign: 'center',
   },
 });

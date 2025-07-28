@@ -1,0 +1,64 @@
+import 'dotenv/config';
+
+export default {
+  expo: {
+    name: 'dolate',
+    slug: 'dolate',
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/images/icon.png',
+    scheme: 'dolate',
+    userInterfaceStyle: 'automatic',
+    newArchEnabled: true,
+    ios: {
+      supportsTablet: true,
+    },
+    android: {
+      adaptiveIcon: {
+        foregroundImage: './assets/images/adaptive-icon.png',
+        backgroundColor: '#ffffff',
+      },
+      edgeToEdgeEnabled: true,
+    },
+    web: {
+      bundler: 'metro',
+      output: 'static',
+      favicon: './assets/images/favicon.png',
+    },
+    plugins: [
+      'expo-router',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/images/splash-icon.png',
+          imageWidth: 200,
+          resizeMode: 'contain',
+          backgroundColor: '#ffffff',
+        },
+      ],
+      [
+        'expo-camera',
+        {
+          cameraPermission: 'Allow Dolate to access your camera',
+          microphonePermission: 'Allow Dolate to access your microphone',
+          recordAudioAndroid: true,
+        },
+      ],
+      [
+        'expo-media-library',
+        {
+          photosPermission: 'Allow $(PRODUCT_NAME) to access your photos.',
+          savePhotosPermission: 'Allow $(PRODUCT_NAME) to save photos.',
+          isAccessMediaLocationEnabled: true,
+        },
+      ],
+    ],
+    experiments: {
+      typedRoutes: true,
+    },
+    extra: {
+      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+    },
+  },
+};

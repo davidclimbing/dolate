@@ -1,17 +1,46 @@
-import React from 'react';
-import { StyleSheet, ScrollView, Alert } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuthStore } from '@/lib/stores/auth';
+import { getDemoStats, useDemoStore } from '@/lib/stores/demo';
+import React from 'react';
+import { Alert, ScrollView, StyleSheet } from 'react-native';
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const { user, signOut, loading } = useAuthStore();
+  const { isDemo, demoUser, exitDemoMode } = useDemoStore();
+  
+  // Get stats based on current mode
+  const stats = isDemo ? getDemoStats() : {
+    totalArticles: 0,
+    readArticles: 0,
+    favoriteArticles: 0,
+    totalTags: 0
+  };
 
   const handleSignOut = async () => {
+    if (isDemo) {
+      Alert.alert(
+        'Exit Demo Mode',
+        'Are you sure you want to exit demo mode?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Exit Demo', 
+            style: 'destructive',
+            onPress: () => {
+              exitDemoMode();
+              // Will redirect to login via app index
+            }
+          },
+        ]
+      );
+      return;
+    }
+
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out?',
@@ -53,7 +82,7 @@ export default function ProfileScreen() {
     >
       <IconSymbol 
         size={24} 
-        name={icon} 
+        name={icon as any} 
         color={Colors[colorScheme ?? 'light'].tint} 
       />
       <ThemedView style={styles.menuContent}>
@@ -80,10 +109,10 @@ export default function ProfileScreen() {
             color={Colors[colorScheme ?? 'light'].tint}
           />
           <ThemedText type="title" style={styles.userName}>
-            {user?.email || 'Guest User'}
+            {isDemo ? demoUser.name : (user?.email || 'Guest User')}
           </ThemedText>
           <ThemedText style={styles.userSubtitle}>
-            Dolate Reader
+            {isDemo ? '🎭 Demo Mode' : 'Dolate Reader'}
           </ThemedText>
         </ThemedView>
 
@@ -95,19 +124,19 @@ export default function ProfileScreen() {
           <MenuItem
             icon="doc.text.fill"
             title="Articles Saved"
-            subtitle="0 articles"
+            subtitle={`${stats.totalArticles} articles`}
           />
           
           <MenuItem
             icon="checkmark.circle.fill"
             title="Articles Read"
-            subtitle="0 articles"
+            subtitle={`${stats.readArticles} articles`}
           />
           
           <MenuItem
             icon="heart.fill"
             title="Favorites"
-            subtitle="0 articles"
+            subtitle={`${stats.favoriteArticles} articles`}
           />
         </ThemedView>
 
@@ -174,7 +203,7 @@ export default function ProfileScreen() {
                 { color: Colors[colorScheme ?? 'light'].tint }
               ]}
             >
-              {loading ? 'Signing Out...' : 'Sign Out'}
+              {loading ? 'Signing Out...' : (isDemo ? 'Exit Demo' : 'Sign Out')}
             </ThemedText>
           </ThemedView>
         </ThemedView>

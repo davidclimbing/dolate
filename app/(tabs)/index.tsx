@@ -8,6 +8,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { ArticleAPI } from '@/lib/api/articles';
 import { useArticleStore, type Article } from '@/lib/stores/articles';
 import { useAuthStore } from '@/lib/stores/auth';
+import { useDemoStore } from '@/lib/stores/demo';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, TextInput } from 'react-native';
@@ -15,6 +16,14 @@ import { FlatList, RefreshControl, StyleSheet, TextInput } from 'react-native';
 export default function ArticlesScreen() {
   const colorScheme = useColorScheme();
   const { user } = useAuthStore();
+  const { 
+    isDemo, 
+    articles: demoArticles, 
+    searchDemoArticles,
+    toggleDemoFavorite: toggleDemoFav,
+    markDemoAsRead: markDemoRead
+  } = useDemoStore();
+  
   const { 
     articles, 
     loading, 
@@ -29,7 +38,9 @@ export default function ArticlesScreen() {
     loadFromCache,
     initializeNetworkMonitoring,
     isOffline,
-    lastSyncTime
+    lastSyncTime,
+    markAsRead,
+    toggleFavorite
   } = useArticleStore();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -45,6 +56,7 @@ export default function ArticlesScreen() {
       // Then load fresh data
       loadArticles();
     }
+    // Demo mode doesn't need additional loading
   }, [user]);
 
   const loadArticles = async () => {
@@ -75,14 +87,22 @@ export default function ArticlesScreen() {
     }
   };
 
-  const { markAsRead, toggleFavorite } = useArticleStore();
-
   const handleArticlePress = (article: Article) => {
+    // Mark as read when opening article
+    if (isDemo) {
+      markDemoRead(article.id);
+    } else {
+      markAsRead(article.id);
+    }
     router.push(`/article/${article.id}` as any);
   };
 
   const handleToggleFavorite = (article: Article) => {
-    toggleFavorite(article.id);
+    if (isDemo) {
+      toggleDemoFav(article.id);
+    } else {
+      toggleFavorite(article.id);
+    }
   };
 
   const ArticleItem = ({ item }: { item: Article }) => (
@@ -90,17 +110,53 @@ export default function ArticlesScreen() {
       article={item}
       onPress={() => handleArticlePress(item)}
       onToggleFavorite={() => handleToggleFavorite(item)}
-      onMarkAsRead={() => markAsRead(item.id)}
+      onMarkAsRead={() => {
+        if (isDemo) {
+          markDemoRead(item.id);
+        } else {
+          markAsRead(item.id);
+        }
+      }}
     />
   );
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadArticles();
+    if (!isDemo) {
+      await loadArticles();
+    }
+    // Demo mode doesn't need refreshing, just simulate delay
+    else {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
     setRefreshing(false);
   };
 
-  const filteredArticles = getFilteredArticles();
+  // Get articles based on mode (demo vs authenticated)
+  const currentArticles = isDemo ? demoArticles : articles;
+  
+  // Apply filtering for demo mode
+  const filteredArticles = isDemo 
+    ? (() => {
+        let filtered = searchQuery 
+          ? searchDemoArticles(searchQuery)
+          : demoArticles;
+        
+        if (showUnreadOnly) {
+          filtered = filtered.filter(a => !a.is_read);
+        }
+        if (showFavoritesOnly) {
+          filtered = filtered.filter(a => a.is_favorite);
+        }
+        if (selectedTags.length > 0) {
+          filtered = filtered.filter(a => 
+            selectedTags.some(tag => a.tags.includes(tag))
+          );
+        }
+        
+        return filtered;
+      })()
+    : getFilteredArticles();
 
   const EmptyState = () => {
     const hasFilters = searchQuery || showUnreadOnly || showFavoritesOnly || selectedTags.length > 0;
@@ -130,7 +186,17 @@ export default function ArticlesScreen() {
       <ThemedView style={styles.header}>
         <ThemedView style={styles.titleContainer}>
           <ThemedText type="title" style={styles.title}>Articles</ThemedText>
-          {isOffline && (
+          {isDemo && (
+            <ThemedView style={styles.demoBadge}>
+              <IconSymbol 
+                size={16} 
+                name="theatermasks.fill" 
+                color="white"
+              />
+              <ThemedText style={styles.demoText}>Demo</ThemedText>
+            </ThemedView>
+          )}
+          {!isDemo && isOffline && (
             <ThemedView style={styles.offlineBadge}>
               <IconSymbol 
                 size={16} 
@@ -157,9 +223,15 @@ export default function ArticlesScreen() {
           onChangeText={setSearchQuery}
         />
         
-        {lastSyncTime && (
+        {!isDemo && lastSyncTime && (
           <ThemedText style={styles.lastSync}>
             Last synced: {new Date(lastSyncTime).toLocaleTimeString()}
+          </ThemedText>
+        )}
+        
+        {isDemo && (
+          <ThemedText style={styles.demoInfo}>
+            🎭 Demo mode - All features available without authentication
           </ThemedText>
         )}
       </ThemedView>
@@ -214,6 +286,26 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '600',
+  },
+  demoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.light.tint,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  demoText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  demoInfo: {
+    fontSize: 12,
+    opacity: 0.7,
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   lastSync: {
     fontSize: 12,

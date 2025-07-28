@@ -9,20 +9,30 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuthStore } from '@/lib/stores/auth';
+import { useDemoStore } from '@/lib/stores/demo';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { user } = useAuthStore();
+  const { isDemo } = useDemoStore();
 
   useEffect(() => {
-    if (!user) {
+    console.log('📱 TabLayout useEffect - user:', !!user, 'isDemo:', isDemo);
+    
+    // Only redirect if neither user nor demo mode is active
+    if (!user && !isDemo) {
+      console.log('📱 No user and no demo, redirecting to login');
       router.replace('/(auth)/login');
     }
-  }, [user]);
+  }, [user, isDemo]);
 
-  if (!user) {
+  // Allow access if user exists OR demo mode is active
+  if (!user && !isDemo) {
+    console.log('📱 Blocking access - no user and no demo');
     return null;
   }
+
+  console.log('📱 Allowing access to tabs - user:', !!user, 'demo:', isDemo);
 
   return (
     <Tabs
