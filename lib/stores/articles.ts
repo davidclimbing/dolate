@@ -79,9 +79,7 @@ export const useArticleStore = create<ArticleState & ArticleActions>((set, get) 
       articles: [article, ...state.articles] 
     }));
     // Cache new article
-    if (ArticleStorage) {
-      ArticleStorage.addArticleToCache(article, article.user_id);
-    }
+    ArticleStorage.addArticleToCache(article, article.user_id);
   },
 
   updateArticle: (id, updates) => {
@@ -96,12 +94,10 @@ export const useArticleStore = create<ArticleState & ArticleActions>((set, get) 
     
     if (article) {
       // Cache the update
-      if (ArticleStorage) {
-        ArticleStorage.updateArticleInCache(id, { ...updates, updated_at: new Date().toISOString() }, article.user_id);
-      }
+      ArticleStorage.updateArticleInCache(id, { ...updates, updated_at: new Date().toISOString() }, article.user_id);
       
       // Queue for sync if offline
-      if (isOffline && SyncQueue) {
+      if (isOffline) {
         SyncQueue.addToQueue({
           type: 'update',
           table: 'articles',
@@ -122,12 +118,10 @@ export const useArticleStore = create<ArticleState & ArticleActions>((set, get) 
     
     if (article) {
       // Remove from cache
-      if (ArticleStorage) {
-        ArticleStorage.removeArticleFromCache(id, article.user_id);
-      }
+      ArticleStorage.removeArticleFromCache(id, article.user_id);
       
       // Queue for sync if offline
-      if (isOffline && SyncQueue) {
+      if (isOffline) {
         SyncQueue.addToQueue({
           type: 'delete',
           table: 'articles',
@@ -161,16 +155,13 @@ export const useArticleStore = create<ArticleState & ArticleActions>((set, get) 
   },
 
   loadFromCache: (userId) => {
-    if (ArticleStorage) {
-      const cachedArticles = ArticleStorage.getArticles(userId);
-      const lastSyncTime = ArticleStorage.getLastSyncTime(userId);
-      set({ articles: cachedArticles, lastSyncTime });
-    }
+    const cachedArticles = ArticleStorage.getArticles(userId);
+    const lastSyncTime = ArticleStorage.getLastSyncTime(userId);
+    set({ articles: cachedArticles, lastSyncTime });
   },
 
   syncOfflineChanges: async () => {
     try {
-      if (!SyncService) return false;
       const success = await SyncService.syncOfflineChanges();
       if (success) {
         console.log('All offline changes synced successfully');
@@ -189,13 +180,12 @@ export const useArticleStore = create<ArticleState & ArticleActions>((set, get) 
   },
 
   initializeNetworkMonitoring: () => {
-    if (!NetInfo) return;
-    NetInfo.addEventListener(state => {
+    NetInfo.addEventListener((state: any) => {
       const isOffline = !state.isConnected;
       get().setOfflineStatus(isOffline);
       
       // Sync when coming back online
-      if (!isOffline && SyncQueue && SyncQueue.getQueueSize() > 0) {
+      if (!isOffline && SyncQueue.getQueueSize() > 0) {
         get().syncOfflineChanges();
       }
     });

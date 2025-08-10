@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { StyleSheet, TextInput, Alert, ScrollView, Pressable } from 'react-native';
-import { router } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { isDummyConfig } from '@/lib/config';
 import { useAuthStore } from '@/lib/stores/auth';
 import { useDemoStore } from '@/lib/stores/demo';
-import { isDummyConfig } from '@/lib/config';
+import { router } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -45,19 +45,8 @@ export default function LoginScreen() {
   };
 
   const handleDemoMode = () => {
-    console.log('🎭 Demo mode button clicked!');
-    console.log('🎭 Current demo state before:', useDemoStore.getState().isDemo);
-    
     enterDemoMode();
-    
-    console.log('🎭 Demo state after enterDemoMode:', useDemoStore.getState().isDemo);
-    console.log('🎭 Attempting to navigate to /(tabs)');
-    
-    // Force navigation with a small delay to ensure state is updated
-    setTimeout(() => {
-      console.log('🎭 Executing router.replace');
-      router.replace('/(tabs)');
-    }, 100);
+    router.replace('/(tabs)');
   };
 
   return (
@@ -208,6 +197,8 @@ const styles = StyleSheet.create({
   },
   form: {
     width: '100%',
+    alignSelf: 'center',
+    maxWidth: 400,
   },
   inputContainer: {
     marginBottom: 20,

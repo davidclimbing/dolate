@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
 import 'react-native-url-polyfill/auto';
 import { Config, validateConfig } from './config';
+
+import { createClient } from '@supabase/supabase-js';
 
 // Platform-aware storage for web SSR compatibility
 const createPlatformStorage = () => {
@@ -64,9 +65,12 @@ try {
   }
 }
 
+const supabaseUrl = 'https://yyynhebnkwgqyqdfezpo.supabase.co'
+const supabaseKey = process.env.SUPABASE_KEY || process.env.EXPO_PUBLIC_SUPABASE_KEY || 'placeholder-key'
+
 export const supabase = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL || Config.supabase.url || 'https://placeholder.supabase.co', 
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || Config.supabase.anonKey || 'placeholder-key', 
+  supabaseUrl,
+  supabaseKey, 
   {
   auth: {
     autoRefreshToken: true,
