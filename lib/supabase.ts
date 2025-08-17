@@ -65,8 +65,8 @@ try {
   }
 }
 
-const supabaseUrl = 'https://yyynhebnkwgqyqdfezpo.supabase.co'
-const supabaseKey = process.env.SUPABASE_KEY || process.env.EXPO_PUBLIC_SUPABASE_KEY || 'placeholder-key'
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL as string
+const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY as string
 
 export const supabase = createClient(
   supabaseUrl,

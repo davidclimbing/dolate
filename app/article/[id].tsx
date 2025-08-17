@@ -6,7 +6,8 @@ import {
   Share, 
   Pressable,
   Dimensions,
-  ActivityIndicator 
+  ActivityIndicator,
+  Linking 
 } from 'react-native';
 import { useLocalSearchParams, useNavigation, router } from 'expo-router';
 import { Image } from 'expo-image';
@@ -28,6 +29,7 @@ export default function ArticleDetailScreen() {
   const [fullContent, setFullContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [contentLoading, setContentLoading] = useState(false);
+  const [contentLoadError, setContentLoadError] = useState<string | null>(null);
   const colorScheme = useColorScheme();
   const navigation = useNavigation();
   
@@ -120,19 +122,39 @@ export default function ArticleDetailScreen() {
     if (contentLoading) return;
     
     setContentLoading(true);
+    setContentLoadError(null);
+    
     try {
       const content = await MetadataAPI.fetchFullContent(url);
-      setFullContent(content);
       
-      // Update article with full content
-      if (article) {
-        const updatedArticle = { ...article, content };
-        setArticle(updatedArticle);
-        updateArticleInDatabase({ content });
+      if (content && content.trim().length > 0) {
+        setFullContent(content);
+        
+        // Update article with full content
+        if (article) {
+          const updatedArticle = { ...article, content };
+          setArticle(updatedArticle);
+          updateArticleInDatabase({ content });
+        }
+      } else {
+        throw new Error('No content could be extracted from this article');
       }
     } catch (error) {
       console.error('Error loading full content:', error);
-      setFullContent('Unable to load full content. Please visit the original article.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load content';
+      setContentLoadError(`Unable to load full content: ${errorMessage}`);
+      
+      Alert.alert(
+        'Content Load Failed',
+        'Unable to extract the full content from this article. You can try opening the original article instead.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Open Original', 
+            onPress: handleOpenOriginal
+          }
+        ]
+      );
     } finally {
       setContentLoading(false);
     }
@@ -178,23 +200,28 @@ export default function ArticleDetailScreen() {
     }
   };
 
-  const handleOpenOriginal = () => {
+  const handleOpenOriginal = async () => {
     if (!article) return;
     
-    Alert.alert(
-      'Open Original',
-      'This will open the article in your browser',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Open', 
-          onPress: () => {
-            // TODO: Open in WebView or external browser
-            console.log('Opening:', article.url);
-          }
-        },
-      ]
-    );
+    try {
+      const canOpen = await Linking.canOpenURL(article.url);
+      if (canOpen) {
+        await Linking.openURL(article.url);
+      } else {
+        Alert.alert(
+          'Error',
+          'Unable to open this URL. Please check if the link is valid.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error opening URL:', error);
+      Alert.alert(
+        'Error',
+        'Failed to open the original article. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -303,6 +330,17 @@ export default function ArticleDetailScreen() {
                 Loading full content...
               </ThemedText>
             </ThemedView>
+          ) : contentLoadError ? (
+            <ThemedView style={styles.errorContainer}>
+              <IconSymbol 
+                size={40} 
+                name="exclamationmark.triangle" 
+                color={Colors[colorScheme ?? 'light'].tabIconDefault}
+              />
+              <ThemedText style={styles.errorText}>
+                {contentLoadError}
+              </ThemedText>
+            </ThemedView>
           ) : (
             <ThemedText style={styles.contentText}>
               {fullContent || article.content || 'Content not available. Please open the original article.'}
@@ -330,7 +368,7 @@ export default function ArticleDetailScreen() {
             </ThemedText>
           </Pressable>
           
-          {!fullContent && !contentLoading && !isDemo && (
+          {(!fullContent || contentLoadError) && !contentLoading && !isDemo && (
             <Pressable 
               style={[
                 styles.actionButton,
@@ -340,11 +378,11 @@ export default function ArticleDetailScreen() {
             >
               <IconSymbol 
                 size={20} 
-                name="arrow.down.circle" 
+                name={contentLoadError ? "arrow.clockwise" : "arrow.down.circle"} 
                 color="white"
               />
               <ThemedText style={[styles.actionButtonText, { color: 'white' }]}>
-                Load Full Content
+                {contentLoadError ? 'Retry Loading' : 'Load Full Content'}
               </ThemedText>
             </Pressable>
           )}
@@ -490,6 +528,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 26,
     textAlign: 'justify',
+  },
+  errorText: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    opacity: 0.7,
+    marginTop: 8,
   },
   actions: {
     flexDirection: 'row',

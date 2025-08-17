@@ -33,6 +33,71 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# .env
+# Environment variables - NEVER commit these!
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.staging
+
+# Allow .env.example files for documentation
+!.env.example
+
+# Supabase
+.supabase/
+
+# API Keys and secrets
+secrets/
+*.secret
+api-keys.json
+service-account.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Authentication tokens
+auth-token.json
+refresh-token.json
+
+# Certificates and private keys
+*.pem
+*.crt
+*.key
+*.p8
+*.p12
+*.pfx
+*.cer
+
+# Backup files that might contain sensitive data
+*.backup
+*.bak
+*.dump
+*.sql
+
+# IDE and editor files that might contain sensitive data
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Log files that might contain sensitive information
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
 scripts/
